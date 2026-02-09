@@ -1,6 +1,12 @@
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema } from 'mongoose';
 
-const UserSchema = new mongoose.Schema({
+export interface IUser extends Document {
+    email: string;
+    firebaseId: string;
+    credits: number;
+}
+
+const UserSchema: Schema = new Schema({
     email: {
         type: String,
         required: true,
@@ -17,4 +23,4 @@ const UserSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('User', UserSchema);
+export default mongoose.model<IUser>('User', UserSchema);

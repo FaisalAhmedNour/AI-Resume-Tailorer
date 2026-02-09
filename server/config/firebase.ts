@@ -1,12 +1,12 @@
-const admin = require('firebase-admin');
-const dotenv = require('dotenv');
-const path = require('path');
+import admin from 'firebase-admin';
+import dotenv from 'dotenv';
+import path from 'path';
 
 // Ensure env vars are loaded
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 try {
-    let serviceAccount;
+    let serviceAccount: admin.ServiceAccount | undefined;
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     }
@@ -26,4 +26,4 @@ try {
     console.error("Firebase Admin Initialization Error:", error);
 }
 
-module.exports = admin;
+export default admin;

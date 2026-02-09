@@ -1,7 +1,7 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const connectDB = require('./config/db');
+import express, { Request, Response } from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import connectDB from './config/db';
 
 const path = require('path');
 require('./config/firebase'); // Initialize Firebase Admin
@@ -19,7 +19,7 @@ app.use(express.json());
 connectDB();
 
 // Routes
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'ok' });
 });
 
