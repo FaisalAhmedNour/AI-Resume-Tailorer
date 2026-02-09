@@ -29,42 +29,42 @@ export const tailorResume = async (req: TailorRequest, res: Response) => {
         }
 
         const genAI = getGenAI();
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `
-        You are an ATS expert. Rewrite the resume summary and bullet points to match this job description.
-        
+        You are an expert resume writer and ATS optimization specialist. 
+        Your task is to write a complete, professional resume based on the user's original resume and the target job description.
+
         Job Description:
         ${jobDescription}
 
         Original Resume:
         ${originalResumeText}
 
-        Return the response in valid JSON format with the following structure:
-        {
-            "summary": "Rewritten summary...",
-            "experience": [
-                {
-                    "company": "Company Name",
-                    "role": "Role",
-                    "points": ["Rewritten bullet point 1", "Rewritten bullet point 2"]
-                }
-            ],
-            "skills": ["Skill 1", "Skill 2"]
-        }
-        Ensure the output is pure JSON without any Markdown formatting (no \`\`\`json).
+        Instructions:
+        1. Analyze the Job Description to identify key skills, keywords, and requirements.
+        2. Rewrite the Original Resume to highlight relevant experience and skills that match the Job Description.
+        3. Use professional, action-oriented language.
+        4. Structure the resume clearly with the following sections (mapped to standard Markdown headers):
+           - # [Candidate Name] (Use "Candidate Name" if not found)
+           - ## Professional Summary
+           - ## Experience (Focus on achievements and metrics)
+           - ## Skills (Technical and Soft skills relevant to the job)
+           - ## Education
+           - ## Projects (if applicable)
+        5. The output MUST be a single, well-formatted Markdown string. 
+        6. Do NOT include any explanations, preambles, or JSON formatting. Just the raw Markdown content.
         `;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
 
-        // simple cleanup if model returns markdown code blocks
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        res.status(200).json({ resumeMarkdown: text });
 
-        const jsonResponse = JSON.parse(cleanedText);
 
-        res.status(200).json(jsonResponse);
+
+
 
     } catch (error: any) {
         console.error("Error tailoring resume:", error);

@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
-import { Loader2, Copy, FileText, Briefcase, Sparkles } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
+import { Loader2, Copy, FileText, Briefcase, Sparkles, ChevronRight, Wand2, Eraser, Download } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 const Dashboard: React.FC = () => {
     const [resumeText, setResumeText] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<string | null>(null);
+    const resumeRef = useRef<HTMLDivElement>(null);
 
     const handleTailor = async () => {
         if (!resumeText.trim() || !jobDescription.trim()) {
@@ -25,7 +29,8 @@ const Dashboard: React.FC = () => {
                 jobDescription: jobDescription,
             });
 
-            setResult(response.data);
+            // Expecting { resumeMarkdown: string }
+            setResult(response.data.resumeMarkdown);
             toast.success('Resume tailored successfully!');
         } catch (error: any) {
             console.error(error);
@@ -36,71 +41,81 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success('Copied to clipboard!');
+    const copyToClipboard = () => {
+        if (result) {
+            navigator.clipboard.writeText(result);
+            toast.success('Markdown copied to clipboard!');
+        }
     };
 
-    // Helper to standardise result display since we get JSON
-    const renderResult = (): string => {
-        if (!result) return '';
+    const handleDownloadPdf = useReactToPrint({
+        content: () => resumeRef.current,
+        documentTitle: 'Tailored_Resume',
+        onAfterPrint: () => toast.success('PDF Downloaded!')
+    });
 
-        // Convert JSON back to a readable markdown-like format for display
-        const mdContent = `
-## Summary
-${result.summary}
-
-## Experience
-${result.experience.map((exp: any) => `
-### ${exp.role} at ${exp.company}
-${exp.points.map((point: string) => `- ${point}`).join('\n')}
-`).join('\n')}
-
-## Skills
-${result.skills.join(', ')}
-    `;
-
-        return mdContent;
+    const clearInputs = () => {
+        setResumeText('');
+        setJobDescription('');
+        setResult(null);
+        toast.success('Cleared all inputs');
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-            {/* Navbar (Simplified) */}
-            <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <FileText className="h-8 w-8 text-blue-600" />
-                            <span className="ml-2 text-xl font-bold text-gray-900">AI Resume Tailorer</span>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+        <div className="min-h-screen bg-gray-50/50 font-sans text-gray-900 flex flex-col">
+            <Navbar />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-grid-pattern [mask-image:linear-gradient(to_bottom,white,transparent)]"></div>
+
+            <main className="flex-grow max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-24 pb-12">
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200/60 pb-6 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+                        <p className="mt-1 text-gray-500">Tailor your resume for specific job applications in seconds.</p>
+                    </div>
+                    <button
+                        onClick={clearInputs}
+                        className="inline-flex items-center px-4 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-lg text-gray-600 bg-white hover:bg-gray-50 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                        <Eraser className="h-4 w-4 mr-2" />
+                        Clear All
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full">
                     {/* Input Section */}
-                    <div className="space-y-6">
-                        <div className="bg-white shadow rounded-lg p-6">
-                            <div className="flex items-center mb-4">
-                                <FileText className="h-5 w-5 text-gray-500 mr-2" />
-                                <h2 className="text-lg font-medium text-gray-900">Original Resume</h2>
+                    <div className="xl:col-span-5 flex flex-col gap-6">
+
+                        {/* Resume Input */}
+                        <div className="bg-white shadow-sm ring-1 ring-gray-200/75 rounded-2xl overflow-hidden flex flex-col h-[350px] transition-shadow hover:shadow-md">
+                            <div className="border-b border-gray-100 bg-gray-50/30 px-5 py-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="bg-indigo-100 p-1.5 rounded-lg">
+                                        <FileText className="h-4 w-4 text-indigo-600" />
+                                    </div>
+                                    <span className="text-sm font-semibold text-gray-700">Original Resume</span>
+                                </div>
                             </div>
                             <textarea
-                                className="w-full h-64 p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Paste your current resume text here..."
+                                className="flex-1 w-full p-5 border-0 focus:ring-0 text-sm leading-relaxed resize-none text-gray-700 placeholder-gray-400 font-mono bg-transparent"
+                                placeholder="Paste your full resume content here..."
                                 value={resumeText}
                                 onChange={(e) => setResumeText(e.target.value)}
                             />
                         </div>
 
-                        <div className="bg-white shadow rounded-lg p-6">
-                            <div className="flex items-center mb-4">
-                                <Briefcase className="h-5 w-5 text-gray-500 mr-2" />
-                                <h2 className="text-lg font-medium text-gray-900">Job Description</h2>
+                        {/* Job Desc Input */}
+                        <div className="bg-white shadow-sm ring-1 ring-gray-200/75 rounded-2xl overflow-hidden flex flex-col h-[350px] transition-shadow hover:shadow-md">
+                            <div className="border-b border-gray-100 bg-gray-50/30 px-5 py-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="bg-emerald-100 p-1.5 rounded-lg">
+                                        <Briefcase className="h-4 w-4 text-emerald-600" />
+                                    </div>
+                                    <span className="text-sm font-semibold text-gray-700">Job Description</span>
+                                </div>
                             </div>
                             <textarea
-                                className="w-full h-64 p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                className="flex-1 w-full p-5 border-0 focus:ring-0 text-sm leading-relaxed resize-none text-gray-700 placeholder-gray-400 font-mono bg-transparent"
                                 placeholder="Paste the job description here..."
                                 value={jobDescription}
                                 onChange={(e) => setJobDescription(e.target.value)}
@@ -109,48 +124,98 @@ ${result.skills.join(', ')}
 
                         <button
                             onClick={handleTailor}
-                            disabled={loading}
-                            className={`w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                            disabled={loading || !resumeText || !jobDescription}
+                            className={`w-full flex items-center justify-center px-6 py-4 border border-transparent text-base font-semibold rounded-2xl text-white shadow-xl transition-all transform hover:scale-[1.01] active:scale-[0.99] ${loading
+                                ? 'bg-brand-400 cursor-not-allowed'
+                                : (!resumeText || !jobDescription)
+                                    ? 'bg-gray-200 cursor-not-allowed text-gray-400 shadow-none'
+                                    : 'bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 ring-4 ring-transparent hover:ring-brand-100'
+                                }`}
                         >
                             {loading ? (
                                 <>
                                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                                    Tailoring Resume...
+                                    Optimizing Profile...
                                 </>
                             ) : (
-                                'Tailor My Resume'
+                                <>
+                                    <Wand2 className="mr-2 h-5 w-5" />
+                                    Tailor My Resume
+                                </>
                             )}
                         </button>
                     </div>
 
-                    {/* Output Section */}
-                    <div className="bg-white shadow rounded-lg p-6 flex flex-col h-full min-h-[600px]">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-medium text-gray-900">Tailored Resume</h2>
-                            {result && (
-                                <button
-                                    onClick={() => copyToClipboard(renderResult() || '')}
-                                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    <Copy className="h-4 w-4 mr-1" />
-                                    Copy Markdown
-                                </button>
-                            )}
+                    {/* Arrow for visual flow on desktop */}
+                    <div className="hidden xl:flex xl:col-span-1 items-center justify-center">
+                        <div className="text-gray-300 animate-pulse-slow">
+                            <ChevronRight className="h-8 w-8" />
                         </div>
+                    </div>
 
-                        <div className="flex-grow p-4 border border-gray-200 rounded-md bg-gray-50 overflow-auto prose prose-blue max-w-none">
-                            {result ? (
-                                <ReactMarkdown>{renderResult() || ''}</ReactMarkdown>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                                    <Sparkles className="h-12 w-12 mb-2" />
-                                    <p>Your tailored resume will appear here.</p>
+                    {/* Output Section */}
+                    <div className="xl:col-span-6 h-full min-h-[500px] flex flex-col">
+                        <div className={`bg-white shadow-xl ring-1 ring-gray-200/75 rounded-2xl overflow-hidden flex flex-col h-full border border-gray-100 relative transition-all duration-500 ${result ? 'shadow-brand-500/10 ring-brand-100' : ''}`}>
+                            {/* Header */}
+                            <div className="border-b border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="bg-gradient-to-br from-brand-500 to-accent-600 p-1.5 rounded-lg shadow-sm">
+                                        <Sparkles className="h-4 w-4 text-white" />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-800">Tailored Result</span>
                                 </div>
-                            )}
+                                {result && (
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={copyToClipboard}
+                                            className="inline-flex items-center px-3.5 py-1.5 border border-gray-200 shadow-sm text-xs font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors"
+                                        >
+                                            <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                            Copy Text
+                                        </button>
+                                        <button
+                                            onClick={handleDownloadPdf}
+                                            className="inline-flex items-center px-3.5 py-1.5 border border-transparent shadow-sm text-xs font-semibold rounded-lg text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors"
+                                        >
+                                            <Download className="h-3.5 w-3.5 mr-1.5" />
+                                            Download PDF
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 overflow-auto bg-gray-100/50 relative scroll-smooth p-6">
+                                {result ? (
+                                    <div className="flex justify-center">
+                                        <div
+                                            ref={resumeRef}
+                                            className="bg-white shadow-sm p-[40px] max-w-[210mm] w-full min-h-[297mm] mx-auto text-sm"
+                                            style={{ pageBreakAfter: 'always' }}
+                                        >
+                                            <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-h1:text-2xl prose-h1:border-b prose-h1:pb-2 prose-h1:mb-4 prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-base prose-p:text-gray-700 prose-li:text-gray-700 prose-li:marker:text-gray-500">
+                                                <ReactMarkdown>{result}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-gray-400">
+                                        <div className="bg-white p-6 rounded-full shadow-lg ring-1 ring-gray-100 mb-6 animate-pulse-slow">
+                                            <Sparkles className="h-10 w-10 text-brand-300" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">Ready to optimize</h3>
+                                        <p className="max-w-xs mx-auto text-base text-gray-500 leading-relaxed">
+                                            Paste your resume and the job description, then click "Tailor My Resume" to let our AI do the work.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             </main>
+
+            <Footer />
         </div>
     );
 };
