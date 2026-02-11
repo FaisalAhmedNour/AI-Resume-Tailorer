@@ -45,22 +45,73 @@ export const tailorResume = async (req: TailorRequest, res: Response) => {
         1. Analyze the Job Description to identify key skills, keywords, and requirements.
         2. Rewrite the Original Resume to highlight relevant experience and skills that match the Job Description.
         3. Use professional, action-oriented language.
-        4. Structure the resume clearly with the following sections (mapped to standard Markdown headers):
-           - # [Candidate Name] (Use "Candidate Name" if not found)
-           - ## Professional Summary
-           - ## Experience (Focus on achievements and metrics)
-           - ## Skills (Technical and Soft skills relevant to the job)
-           - ## Education
-           - ## Projects (if applicable)
-        5. The output MUST be a single, well-formatted Markdown string. 
-        6. Do NOT include any explanations, preambles, or JSON formatting. Just the raw Markdown content.
+        4. Return the output IN PURE JSON FORMAT. Do not include any Markdown formatting (no \`\`\`json or \`\`\`).
+        5. The JSON must strictly follow this schema:
+        {
+            "personalInfo": {
+                "fullName": "string",
+                "email": "string",
+                "phone": "string",
+                "linkedin": "string (optional)",
+                "portfolio": "string (optional)",
+                "address": "string (optional)",
+                "summary": "string (optional)"
+            },
+            "professionalSummary": "string",
+            "skills": {
+                "technical": ["string"],
+                "soft": ["string"],
+                "languages": ["string"]
+            },
+            "experience": [
+                {
+                    "position": "string",
+                    "company": "string",
+                    "location": "string (optional)",
+                    "startDate": "string",
+                    "endDate": "string",
+                    "responsibilities": ["string"]
+                }
+            ],
+            "education": [
+                {
+                    "degree": "string",
+                    "school": "string",
+                    "location": "string (optional)",
+                    "graduationDate": "string",
+                    "details": ["string"]
+                }
+            ],
+            "projects": [
+                {
+                    "name": "string",
+                    "description": "string",
+                    "technologies": ["string"],
+                    "link": "string (optional)",
+                    "role": "string (optional)"
+                }
+            ],
+            "certifications": [
+                {
+                    "name": "string",
+                    "issuer": "string",
+                    "date": "string",
+                    "link": "string (optional)"
+                }
+            ]
+        }
         `;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const text = response.text();
+        let text = response.text();
 
-        res.status(200).json({ resumeMarkdown: text });
+        // Clean up markdown code blocks if present
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const resumeData = JSON.parse(text);
+
+        res.status(200).json({ resumeData });
 
 
 

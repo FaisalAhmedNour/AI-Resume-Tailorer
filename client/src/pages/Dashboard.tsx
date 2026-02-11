@@ -1,17 +1,21 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
-import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
 import { useReactToPrint } from 'react-to-print';
-import { Loader2, Copy, FileText, Briefcase, Sparkles, ChevronRight, Wand2, Eraser, Download } from 'lucide-react';
+import { Loader2, FileText, Briefcase, Sparkles, ChevronRight, Wand2, Eraser, Download } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { ResumeStructure } from '../types/resume';
+import ModernTemplate from '../components/ResumeTemplates/ModernTemplate';
+import ProfessionalTemplate from '../components/ResumeTemplates/ProfessionalTemplate';
+import MinimalistTemplate from '../components/ResumeTemplates/MinimalistTemplate';
 
 const Dashboard: React.FC = () => {
     const [resumeText, setResumeText] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
+    const [result, setResult] = useState<ResumeStructure | null>(null);
+    const [selectedTemplate, setSelectedTemplate] = useState<'modern' | 'professional' | 'minimalist'>('modern');
     const resumeRef = useRef<HTMLDivElement>(null);
 
     const handleTailor = async () => {
@@ -29,8 +33,8 @@ const Dashboard: React.FC = () => {
                 jobDescription: jobDescription,
             });
 
-            // Expecting { resumeMarkdown: string }
-            setResult(response.data.resumeMarkdown);
+            // Expecting { resumeData: ResumeStructure }
+            setResult(response.data.resumeData);
             toast.success('Resume tailored successfully!');
         } catch (error: any) {
             console.error(error);
@@ -41,15 +45,8 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const copyToClipboard = () => {
-        if (result) {
-            navigator.clipboard.writeText(result);
-            toast.success('Markdown copied to clipboard!');
-        }
-    };
-
     const handleDownloadPdf = useReactToPrint({
-        content: () => resumeRef.current,
+        contentRef: resumeRef,
         documentTitle: 'Tailored_Resume',
         onAfterPrint: () => toast.success('PDF Downloaded!')
     });
@@ -165,14 +162,27 @@ const Dashboard: React.FC = () => {
                                     <span className="text-sm font-bold text-gray-800">Tailored Result</span>
                                 </div>
                                 {result && (
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={copyToClipboard}
-                                            className="inline-flex items-center px-3.5 py-1.5 border border-gray-200 shadow-sm text-xs font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors"
-                                        >
-                                            <Copy className="h-3.5 w-3.5 mr-1.5" />
-                                            Copy Text
-                                        </button>
+                                    <div className="flex gap-2 items-center">
+                                        <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1 mr-2">
+                                            <button
+                                                onClick={() => setSelectedTemplate('modern')}
+                                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${selectedTemplate === 'modern' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Modern
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedTemplate('professional')}
+                                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${selectedTemplate === 'professional' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Professional
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedTemplate('minimalist')}
+                                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${selectedTemplate === 'minimalist' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Minimalist
+                                            </button>
+                                        </div>
                                         <button
                                             onClick={handleDownloadPdf}
                                             className="inline-flex items-center px-3.5 py-1.5 border border-transparent shadow-sm text-xs font-semibold rounded-lg text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors"
@@ -193,8 +203,10 @@ const Dashboard: React.FC = () => {
                                             className="bg-white shadow-sm p-[40px] max-w-[210mm] w-full min-h-[297mm] mx-auto text-sm"
                                             style={{ pageBreakAfter: 'always' }}
                                         >
-                                            <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-h1:text-2xl prose-h1:border-b prose-h1:pb-2 prose-h1:mb-4 prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-base prose-p:text-gray-700 prose-li:text-gray-700 prose-li:marker:text-gray-500">
-                                                <ReactMarkdown>{result}</ReactMarkdown>
+                                            <div className="h-full w-full">
+                                                {selectedTemplate === 'modern' && <ModernTemplate data={result} />}
+                                                {selectedTemplate === 'professional' && <ProfessionalTemplate data={result} />}
+                                                {selectedTemplate === 'minimalist' && <MinimalistTemplate data={result} />}
                                             </div>
                                         </div>
                                     </div>
